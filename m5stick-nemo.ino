@@ -3830,18 +3830,15 @@ void badusb_analyzeDevice(USBDeviceInfo* device) {
   device->suspicionReason = "";
 
   int hidCount = 0;
-  int storageCount = 0;
-  int vendorSpecCount = 0;
 
   for (int i = 0; i < device->numInterfaces; i++) {
     if (device->interfaceClasses[i] == 0x03) hidCount++;
-    if (device->interfaceClasses[i] == 0x08) storageCount++;
-    if (device->interfaceClasses[i] == 0xFF) vendorSpecCount++;
   }
 
-  if (hidCount > 0 && storageCount > 0) {
+  // Suspicious: Multiple interfaces with at least one HID
+  if (device->numInterfaces > 1 && hidCount > 0) {
     device->isSuspicious = true;
-    device->suspicionReason = "HID+Storage combo";
+    device->suspicionReason = "Multi-interface+HID";
   }
 
   if (hidCount > 1) {
@@ -3849,15 +3846,15 @@ void badusb_analyzeDevice(USBDeviceInfo* device) {
     device->suspicionReason = "Multiple HID ifaces";
   }
 
-  if (vendorSpecCount > 0 && hidCount > 0) {
-    device->isSuspicious = true;
-    device->suspicionReason = "Vendor+HID combo";
-  }
-
   // Rubber Ducky (Hak5)
   if (device->vid == 0x03EB && device->pid == 0x2403) {
     device->isSuspicious = true;
-    device->suspicionReason = "Known BadUSB VID/PID";
+    device->suspicionReason = "Hak5 Rubber Ducky";
+  }
+
+  if (device->numInterfaces == hidCount && hidCount > 0){
+    device->suspicionReason = "HID";
+    device->isSuspicious = false;
   }
 }
 
@@ -3885,6 +3882,12 @@ void badusb_displayDeviceInfo(USBDeviceInfo* device) {
   if (device->isSuspicious) {
     DISP.setTextColor(TFT_RED);
     DISP.println("!SUSPICIOUS!");
+    play_alert_beep();
+  } else if (device->suspicionReason=="HID") {
+    DISP.setTextColor(TFT_YELLOW);
+    DISP.println("HID-Only Device");
+    play_alert_beep();
+
   } else {
     DISP.setTextColor(TFT_GREEN);
     DISP.println("Device OK");
@@ -3928,13 +3931,6 @@ void badusb_displayDeviceInfo(USBDeviceInfo* device) {
   DISP.setTextSize(TINY_TEXT);
   DISP.setTextColor(FGCOLOR, BGCOLOR);
   DISP.println("Next: Exit");
-}
-
-void badusb_playWarningBeep() {
-  for (int i = 0; i < 3; i++) {
-    SPEAKER.tone(2000, 100);
-    delay(150);
-  }
 }
 
 void badusb_updateLED() {
@@ -4010,10 +4006,6 @@ void badusb_processNewDevice(uint8_t address) {
 
     badusb_analyzeDevice(&badusb_currentDevice);
     badusb_displayDeviceInfo(&badusb_currentDevice);
-
-    if (badusb_currentDevice.isSuspicious) {
-      badusb_playWarningBeep();
-    }
   }
 }
 
@@ -4087,8 +4079,6 @@ void badusb_hunter_setup() {
     usb_host_uninstall();
     return;
   }
-
-  SPEAKER.tone(1000, 200);
   
   // Reset state
   badusb_deviceConnected = false;
@@ -4098,7 +4088,7 @@ void badusb_hunter_setup() {
 void badusb_hunter_loop() {
   // Update LED
   badusb_updateLED();
-
+  check_select_press();
   // Check for exit
   if (check_next_press()) {
     badusb_cleanup();
