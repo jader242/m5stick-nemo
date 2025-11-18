@@ -1,5 +1,5 @@
 # M5Stick-NEMO
-Firmware for high-tech pranks on M5Stack ESP32 Devices
+Firmware for high-tech pranks and digital self-defense on M5Stack ESP32 Devices
 
 ![M5-Nemo Matrix Logo](https://github.com/n0xa/m5stick-nemo/blob/main/NEMOMatrix.png)
 Logo by @unagironin
