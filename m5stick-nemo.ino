@@ -4,6 +4,7 @@
 // -=-=-=-=-=-=- Uncomment the platform you're building for -=-=-=-=-=-=-
 // #define STICK_C_PLUS
 // #define STICK_C_PLUS2
+// #define STICKS3
 // #define STICK_C
 // #define CARDPUTER
 // -=-=- Uncommenting more than one at a time will result in errors -=-=-
@@ -22,7 +23,7 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define NEMO_VERSION "dev"
 #endif
 
-#if !defined(CARDPUTER) && !defined(STICK_C_PLUS2) && !defined(STICK_C_PLUS) && !defined(STICK_C)
+#if !defined(CARDPUTER) && !defined(STICK_C_PLUS2) && !defined(STICK_C_PLUS) && !defined(STICK_C) && !defined(STICKS3)
   #define CARDPUTER
 #endif
 
@@ -99,6 +100,41 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define SD_CS_PIN 14 //can be -1, but sends a lot of messages of error in serial monitor
   #define M5LED_ON HIGH
   #define M5LED_OFF LOW
+#endif
+
+#if defined(STICKS3)
+  #include <M5Unified.h>
+  // -=-=- Display -=-=-
+  String platformName="StickS3";
+  #define BIG_TEXT 4
+  #define MEDIUM_TEXT 3
+  #define SMALL_TEXT 2
+  #define TINY_TEXT 1
+  // -=-=- FEATURES -=-=-
+  #define ACTIVE_LOW_IR
+  #define M5LED 46
+  #define ROTATION
+  #define USE_EEPROM
+  #define SDCARD   //Requires a custom-built adapter
+  #define PWRMGMT
+  #define SPEAKER M5.Speaker
+  //#define SONG
+  // -=-=- ALIASES -=-=-
+  #define DISP M5.Display
+  #define IRLED 46
+  #define BITMAP M5.Display.drawBmp(NEMOMatrix, 97338)
+  #define M5_BUTTON_MENU 12  // KEY2 per device diagram
+  #define M5_BUTTON_HOME 11  // KEY1 (main front button)
+  #define M5_BUTTON_RST -1   // GPIO 0 not usable on StickS3 (power/boot pin)
+  #define BACKLIGHT 38
+  #define MINBRIGHT 2
+  #define SD_CLK_PIN 0
+  #define SD_MISO_PIN 1
+  #define SD_MOSI_PIN 8
+  #define SD_CS_PIN 14
+  #define M5LED_ON HIGH
+  #define M5LED_OFF LOW
+  #define HID
 #endif
 
 #if defined(STICK_C)
@@ -295,7 +331,9 @@ int dh_pkts = 0;
 #include "deauth_hunter.h"                                                          //DEAUTH HUNTER
 #include "ble_hunter.h"                                                             //BLE HUNTER
 #include "pineap_hunter.h"                                                          //PINEAP HUNTER
+#if defined(CARDPUTER)
 #include "badusb_hunter.h"                                                          //BADUSB HUNTER
+#endif
 struct MENU {
   char name[19];
   int command;
@@ -385,9 +423,10 @@ void check_menu_press() {
 #if defined(KB)
   if (M5Cardputer.Keyboard.isKeyPressed(',') || M5Cardputer.Keyboard.isKeyPressed('`')){
 #endif
-#if defined(M5_BUTTON_MENU)
+#if defined(M5_BUTTON_MENU) && !defined(STICKS3)
   if (digitalRead(M5_BUTTON_MENU) == LOW){
 #endif
+#if defined(KB) || (defined(M5_BUTTON_MENU) && !defined(STICKS3))
     dimtimer();
     if(portal_active){
       // just in case we escape the portal with the main menu button
@@ -399,6 +438,7 @@ void check_menu_press() {
     current_proc = 1;
     delay(100);
   }
+#endif
 }
 
 bool check_next_press(){
@@ -412,6 +452,12 @@ bool check_next_press(){
   }
   //M5Cardputer.update();
   if (M5Cardputer.Keyboard.isKeyPressed(KEY_TAB) || M5Cardputer.Keyboard.isKeyPressed('.')){
+    dimtimer();
+    return true;
+  }
+#elif defined(STICKS3)
+  // StickS3: Use GPIO 12 (KEY2) for Next
+  if (digitalRead(12) == LOW){
     dimtimer();
     return true;
   }
@@ -1169,6 +1215,13 @@ void tvbgone_setup() {
   DISP.setCursor(0, 0);
   DISP.println("TV-B-Gone");
   DISP.setTextSize(SMALL_TEXT);
+
+  // StickS3: Enable 5V output to power IR LED (required per schematic)
+  #if defined(STICKS3)
+  M5.Power.setExtOutput(true);
+  delay(50);  // Allow power to stabilize
+  #endif
+
   IrSender.begin(IRLED); // Initialize IR sender
   // Hack: Set IRLED high to turn it off after setup. Otherwise it stays on (active low)
   digitalWrite(IRLED, M5LED_OFF);
@@ -1289,8 +1342,18 @@ void sendAllCodes() {
       endingEarly = true;
       current_proc = 1;
       isSwitching = true;
-      rstOverride = false; 
-      break;     
+      rstOverride = false;
+      break;
+    }
+    #endif
+    #if defined(STICKS3)
+    M5.update();  // Refresh button states
+    if (M5.Power.getKeyState()) {
+      endingEarly = true;
+      current_proc = 1;
+      isSwitching = true;
+      rstOverride = false;
+      break;
     }
     #endif
 #if defined(KB)
@@ -2293,11 +2356,10 @@ void wsAmenu_loop() {
   // DEAUTH attack END
 #endif
 void bootScreen(){
-  // Boot Screen
   #ifdef SONG
   setupSongs();
   #endif
-  #ifndef STICK_C
+  #if !defined(STICK_C)
   BITMAP;
   delay(3000);
   #endif
@@ -3523,9 +3585,7 @@ void string_to_bssid(const String& bssid_str, uint8_t* bssid) {
 }
 
 void play_alert_beep() {
-    #if defined(CARDPUTER)
-      SPEAKER.tone(4000, 50);
-    #elif defined(STICK_C_PLUS2)
+    #if defined(CARDPUTER) || defined(STICK_C_PLUS2) || defined(STICKS3)
       SPEAKER.tone(4000, 50);
     #endif
 }

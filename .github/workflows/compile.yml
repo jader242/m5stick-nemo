@@ -15,7 +15,7 @@ on:
         type: choice
         required: true
         default: 'M5Cardputer'
-        options: ['M5Cardputer', 'M5StickCPlus2', 'M5StickCPlus', 'M5StickC']
+        options: ['M5Cardputer', 'M5StickS3', 'M5StickCPlus2', 'M5StickCPlus', 'M5StickC']
 
 jobs:
   compile_sketch:
@@ -34,6 +34,15 @@ jobs:
               fqbn: "m5stack:esp32:m5stack_cardputer",
               extra_flags: "-DCARDPUTER",
               libraries: "M5Cardputer@1.1.0 IRremote M5Stack-SD-Updater M5Unified@0.2.8 FastLED",
+              partitions: {
+                bootloader_addr: "0x0000",
+              },
+            }
+          - {
+              name: "M5StickS3",
+              fqbn: "m5stack:esp32:m5stack_sticks3",
+              extra_flags: "-DSTICKS3",
+              libraries: "M5Unified@0.2.12 IRremote M5Stack-SD-Updater",
               partitions: {
                 bootloader_addr: "0x0000",
               },
