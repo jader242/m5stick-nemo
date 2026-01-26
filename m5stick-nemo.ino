@@ -2,7 +2,7 @@
 // github.com/n0xa | IG: @4x0nn
 
 // -=-=-=-=-=-=- Uncomment the platform you're building for -=-=-=-=-=-=-
-// #define STICK_C_PLUS
+#define STICK_C_PLUS
 // #define STICK_C_PLUS2
 // #define STICKS3
 // #define STICK_C
@@ -36,7 +36,7 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
 
 
 #if defined(STICK_C_PLUS)
-  #include <M5StickCPlus.h>
+  #include <M5Unified.h>
   // -=-=- Display -=-=-
   String platformName="StickC+";
   #define BIG_TEXT 4
@@ -54,11 +54,14 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   //#define SONG
 
   // -=-=- ALIASES -=-=-
-  #define DISP M5.Lcd
+  #define DISP M5.Display
   #define IRLED 9
-  #define SPEAKER M5.Beep
-//  #define BITMAP M5.Lcd.drawBitmap(0, 0, 320, 240, NEMOMatrix) // This doesn't work, generates static.
+  #define SPEAKER M5.Speaker
+  //#define BITMAP M5.Display.drawBitmap(0, 0, 320, 240, NEMOMatrix) // This doesn't work, generates static.
   #define BITMAP Serial.println("unsupported")
+  #define M5_BUTTON_HOME 37
+  #define M5_BUTTON_RST 39
+  #define MINBRIGHT 50
   #define SD_CLK_PIN 0
   #define SD_MISO_PIN 36
   #define SD_MOSI_PIN 26
@@ -68,7 +71,7 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
 #endif
 
 #if defined(STICK_C_PLUS2)
-  #include <M5StickCPlus2.h>
+  #include <M5Unified.h>
   // -=-=- Display -=-=-
   String platformName="StickC+2";
   #define BIG_TEXT 4
@@ -81,14 +84,14 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define ROTATION
   #define USE_EEPROM
   #define RTC      //TODO: plus2 has a BM8563 RTC but the class isn't the same, needs work.
-  #define SDCARD   //Requires a custom-built adapter
+  // #define SDCARD   //Requires a custom-built adapter
   #define PWRMGMT
   #define SPEAKER M5.Speaker
   //#define SONG
   // -=-=- ALIASES -=-=-
-  #define DISP M5.Lcd
+  #define DISP M5.Display
   #define IRLED 19
-  #define BITMAP M5.Lcd.drawBmp(NEMOMatrix, 97338)
+  #define BITMAP M5.Display.drawBmp(NEMOMatrix, 97338)
   #define M5_BUTTON_MENU 35
   #define M5_BUTTON_HOME 37
   #define M5_BUTTON_RST 39
@@ -138,7 +141,7 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
 #endif
 
 #if defined(STICK_C)
-  #include <M5StickC.h>
+  #include <M5Unified.h>
   // -=-=- Display -=-=-
   String platformName="StickC";
   #define BIG_TEXT 2
@@ -154,9 +157,12 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define SDCARD   //Requires a custom-built adapter
   //#define SONG
   // -=-=- ALIASES -=-=-
-  #define DISP M5.Lcd
+  #define DISP M5.Display
   #define IRLED 9
   #define BITMAP Serial.println("unsupported")
+  #define M5_BUTTON_HOME 37
+  #define M5_BUTTON_RST 39
+  #define MINBRIGHT 90
   #define SD_CLK_PIN 0
   #define SD_MISO_PIN 36
   #define SD_MOSI_PIN 26
@@ -418,7 +424,8 @@ void switcher_button_proc() {
 // Tap the power button from pretty much anywhere to get to the main menu
 void check_menu_press() {
 #if defined(AXP)
-  if (M5.Axp.GetBtnPress()) {
+  M5.update();
+  if (M5.Power.getKeyState()) {
 #endif
 #if defined(KB)
   if (M5Cardputer.Keyboard.isKeyPressed(',') || M5Cardputer.Keyboard.isKeyPressed('`')){
@@ -426,7 +433,7 @@ void check_menu_press() {
 #if defined(M5_BUTTON_MENU) && !defined(STICKS3)
   if (digitalRead(M5_BUTTON_MENU) == LOW){
 #endif
-#if defined(KB) || (defined(M5_BUTTON_MENU) && !defined(STICKS3))
+#if defined(AXP) || defined(KB) || (defined(M5_BUTTON_MENU) && !defined(STICKS3))
     dimtimer();
     if(portal_active){
       // just in case we escape the portal with the main menu button
@@ -587,7 +594,7 @@ int screen_dim_current = 0;
 void screenBrightness(int bright){
   Serial.printf("Brightness: %d\n", bright);
   #if defined(AXP)
-    M5.Axp.ScreenBreath(10 + round(((100 - 10) * bright / 100)));
+    M5.Display.setBrightness(MINBRIGHT + round(((255 - MINBRIGHT) * bright / 100)));
   #endif
   #if defined(BACKLIGHT)
     int bl = MINBRIGHT + round(((255 - MINBRIGHT) * bright / 100)); 
@@ -1140,18 +1147,18 @@ void battery_drawmenu(int battery, float voltage_b = 0, float voltage_c = 0) {
 
   void battery_setup() {
     rstOverride = false;
-    float c = M5.Axp.GetVapsData() * 1.4 / 1000;
-    float b = M5.Axp.GetVbatData() * 1.1 / 1000;
-    int battery = ((b - 3.0) / 1.2) * 100;
+    float c = M5.Power.Axp192.getBatteryChargeCurrent() / 1000.0;
+    float b = M5.Power.getBatteryVoltage() / 1000.0;
+    int battery = M5.Power.getBatteryLevel();
     battery_drawmenu(battery, b, c);
     delay(500); // Prevent switching after menu loads up
   }
 
   void battery_loop() {
     delay(300);
-    float c = M5.Axp.GetVapsData() * 1.4 / 1000;
-    float b = M5.Axp.GetVbatData() * 1.1 / 1000;
-    int battery = ((b - 3.0) / 1.2) * 100;
+    float c = M5.Power.Axp192.getBatteryChargeCurrent() / 1000.0;
+    float b = M5.Power.getBatteryVoltage() / 1000.0;
+    int battery = M5.Power.getBatteryLevel();
     if (battery != old_battery || b != old_b || c != old_c){
       battery_drawmenu(battery, b, c);
       old_b = b;
@@ -1338,7 +1345,8 @@ void sendAllCodes() {
     bitsleft_r = 0;
     delay_ten_us(20500);
     #if defined(AXP)
-    if (M5.Axp.GetBtnPress()) {
+    M5.update();
+    if (M5.Power.getKeyState()) {
       endingEarly = true;
       current_proc = 1;
       isSwitching = true;
@@ -1391,8 +1399,8 @@ void sendAllCodes() {
 
   void clock_loop() {
     DISP.setCursor(10, 40, 7);
-    #if defined(STICK_C_PLUS2)
-      auto dt = StickCP2.Rtc.getDateTime();
+    #if defined(STICK_C_PLUS2) || defined(STICK_C) || defined(STICK_C_PLUS)
+      auto dt = M5.Rtc.getDateTime();
       DISP.printf("%02d:%02d:%02d\n", dt.time.hours, dt.time.minutes, dt.time.seconds);
     #else
       M5.Rtc.GetBm8563Time();
@@ -1411,8 +1419,8 @@ void sendAllCodes() {
   }
 
   void timeset_loop() {
-  #if defined(STICK_C_PLUS2)
-    auto dt = StickCP2.Rtc.getDateTime();
+  #if defined(STICK_C_PLUS2) || defined(STICK_C) || defined(STICK_C_PLUS)
+    auto dt = M5.Rtc.getDateTime();
     cursor = dt.time.hours;
   #else
     M5.Rtc.GetBm8563Time();
@@ -1432,7 +1440,7 @@ void sendAllCodes() {
     DISP.setCursor(0, 0);
     DISP.println(TXT_SET_MIN);
     delay(2000);
-    #if defined(STICK_C_PLUS2)
+    #if defined(STICK_C_PLUS2) || defined(STICK_C) || defined(STICK_C_PLUS)
       cursor = dt.time.minutes;
     #else
       cursor = M5.Rtc.Minute;
@@ -1449,8 +1457,8 @@ void sendAllCodes() {
     int minute = cursor;
     DISP.fillScreen(BGCOLOR);
     DISP.setCursor(0, 0);
-    #if defined(STICK_C_PLUS2)
-       StickCP2.Rtc.setDateTime( { { dt.date.year, dt.date.month, dt.date.date }, { hour, minute, 0 } } );
+    #if defined(STICK_C_PLUS2) || defined(STICK_C) || defined(STICK_C_PLUS)
+       M5.Rtc.setDateTime( { { dt.date.year, dt.date.month, dt.date.date }, { hour, minute, 0 } } );
     #else
       RTC_TimeTypeDef TimeStruct;
       TimeStruct.Hours   = hour;
@@ -2388,7 +2396,9 @@ void bootScreen(){
 #else
   DISP.println(TXT_STK_NXT);
   DISP.println(TXT_STK_SEL);
+#if !defined(STICKS3)
   DISP.println(TXT_STK_HOME);
+#endif
   delay(3000);
 #endif
 }
