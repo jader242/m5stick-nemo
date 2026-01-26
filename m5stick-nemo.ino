@@ -31,8 +31,6 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define LANGUAGE_EN_US
 #endif
 
-// -=-=- DEAUTHER -=-  @bmorcelli -=-=- | Discord: Pirata#5263 bmorcelli
-#define DEAUTHER  //Need to make some changes in arduino IDE, refer to https://github.com/bmorcelli/m5stickC_Plus2-nemo/tree/main/DEAUTH%20Prerequisites
 
 
 #if defined(STICK_C_PLUS)
@@ -240,9 +238,7 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
 // 16 - Bluetooth Spam Menu
 // 17 - Bluetooth Maelstrom
 // 18 - QR Codes
-// 19 - NEMO Portal
-// 20 - Attack menu
-// 21 - Deauth Attack
+// 19 - NEMO Portal (with Clone support)
 // 22 - Custom Color Settings
 // 23 - Pre-defined color themes
 // 24 - Deauth Hunter
@@ -297,14 +293,10 @@ bool isSwitching = true;
 #else
   int current_proc = 1; // Start in Main Menu mode if no RTC
 #endif
-// DEAUTH vars
+// Portal clone vars
 uint8_t channel;
 String apMac = String("");
-bool target_deauth_flg = false;
-bool target_deauth = false;
-int deauth_tick = 0;        // used to delay the deauth packets when combined to Nemo Portal
 bool clone_flg = false;
-// DEAUTH end
 float bh_max_rssi = -40;
 int bh_pkts = 0;
 float dh_max_rssi = -20;
@@ -328,11 +320,6 @@ int dh_pkts = 0;
 #include "localization.h"
 #include <BLEUtils.h>
 #include <BLEServer.h>
-#if defined(DEAUTHER)
-  #include "deauth.h"                                                               //DEAUTH
-  #include "esp_wifi.h"                                                             //DEAUTH
-  wifi_ap_record_t ap_record;                                                       //DEAUTH
-#endif
 
 #include "deauth_hunter.h"                                                          //DEAUTH HUNTER
 #include "ble_hunter.h"                                                             //BLE HUNTER
@@ -2197,16 +2184,15 @@ void wscan_result_loop(){
     DISP.print("BSSID:\n" + WiFi.BSSIDstr(i));
     DISP.printf(TXT_SEL_BACK);
     DISP.setTextColor(BGCOLOR, FGCOLOR);
-    DISP.printf(" %-19s\n", TXT_HOLD_ATTACK);
+    DISP.printf(" %-19s\n", TXT_HOLD_CLONE);
     DISP.setTextColor(FGCOLOR, BGCOLOR);
    if(check_select_press()){
       apMac=WiFi.BSSIDstr(cursor);
       apSsidName=WiFi.SSID(cursor);
-      channel = static_cast<uint8_t>(WiFi.channel(cursor));                            // DEAUTH - save channel
-      uint8_t* bssid = WiFi.BSSID(cursor);                                             // DEAUTH - save BSSID (AP MAC)
-      memcpy(ap_record.bssid, bssid, 6);                                               // DEAUTH - cpy bssid to memory
+      channel = static_cast<uint8_t>(WiFi.channel(cursor));
+      clone_flg = true;
       rstOverride = false;
-      current_proc = 20;
+      current_proc = 19;  // Go directly to Portal
       isSwitching = true;
       delay(100);
     }
@@ -2237,132 +2223,7 @@ void wscan_loop(){
     current_proc=15;
   }
 }
-/// WIFI-Attack MENU and functions START///
-MENU wsAmenu[] = {
-  { TXT_BACK, 5},
-  { TXT_WFA_PORTAL, 0},
-  #if defined(DEAUTHER)
-    { TXT_WFA_DEAUTH, 1},
-    { TXT_WFA_COMBINED, 2},
-  #endif
-};
-int wsAmenu_size = sizeof(wsAmenu) / sizeof (MENU);
 
-void wsAmenu_setup() {
-  rstOverride = true;
-  drawmenu(wsAmenu, wsAmenu_size);
-  delay(500); // Prevent switching after menu loads up
-}
-
-void wsAmenu_loop() {
-  if (check_next_press()) {
-    cursor++;
-    cursor = cursor % wsAmenu_size;
-    drawmenu(wsAmenu, wsAmenu_size);
-    delay(250);
-  }
-  if (check_select_press()) {
-    int option = wsAmenu[cursor].command;
-    rstOverride = false;
-    current_proc = 20;
-    isSwitching = true;
-    switch(option) {
-      case 0:                     //Go to Clone Nemo Portal
-        rstOverride = false;
-        isSwitching = true;
-        clone_flg=true;
-        target_deauth_flg=false;
-        current_proc = 19;
-        break;
-      #if defined (DEAUTHER)
-        case 1:                     //Go to Deauth
-          rstOverride = false;
-          isSwitching = true;
-          target_deauth_flg=false;
-          target_deauth=true;
-          current_proc = 21;                                                                 // iserir codigo do deauth aqui
-          break;
-        case 2:                     //Go to Nemo with Deauth
-          rstOverride = false;
-          isSwitching = true;
-          clone_flg=true;
-          target_deauth_flg=true;
-          target_deauth=true;
-          current_proc = 19;
-          break;
-      #endif
-      case 5:                     //Exit
-        current_proc = 14;
-        break;
-    }
-  }
-}
-
-// WIFI-Attack MENU and functions END
-// DEAUTH ATTACK START
-#if defined(DEAUTHER)
-  void deauth_setup(){
-    // Start the Access point service as Hidden
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(apSsidName, emptyString, channel, 1, 4, false);
-    IPAddress apIP = WiFi.softAPIP();
-
-
-    DISP.fillScreen(BGCOLOR);
-    DISP.setCursor(0, 0);
-    DISP.setTextSize(BIG_TEXT);
-    DISP.setTextColor(TFT_RED, BGCOLOR);
-    DISP.println("Deauth Atk");
-    DISP.setTextSize(SMALL_TEXT);
-    DISP.setTextColor(FGCOLOR, BGCOLOR);
-    DISP.print("\nSSID: " + apSsidName);
-    DISP.print("\n");
-    DISP.printf(TXT_WF_CHANN, channel);
-    DISP.print("> " + apMac);
-    memcpy(deauth_frame, deauth_frame_default, sizeof(deauth_frame_default));
-    wsl_bypasser_send_deauth_frame(&ap_record, channel);                                        // DEAUTH CREATE FRAME
-
-    cursor = 0;
-    rstOverride = false;
-    delay(500); // Prevent switching after menu loads up
-  }
-  void deauth_loop(){
-
-    if (target_deauth == true) {                                                                 // DEAUTH
-      wsl_bypasser_send_raw_frame(deauth_frame, sizeof(deauth_frame_default));                   // DEAUTH SEND FRAME
-      DISP.setTextSize(SMALL_TEXT);                                                              // DEAUTH
-      DISP.setTextColor(TFT_RED, BGCOLOR);                                                       // DEAUTH
-      DISP.setCursor(1, 115);                                                                    // DEAUTH
-      DISP.println(TXT_DEAUTH_STOP);                                                             // DEAUTH
-      DISP.setTextColor(FGCOLOR, BGCOLOR);                                                       // DEAUTH
-    } else{                                                                                      // DEAUTH
-      DISP.setTextSize(SMALL_TEXT);                                                              // DEAUTH
-      DISP.setTextColor(TFT_RED, BGCOLOR);                                                       // DEAUTH
-      DISP.setCursor(1, 115);                                                                    // DEAUTH
-      DISP.println(TXT_DEAUTH_START);                                                            // DEAUTH
-      DISP.setTextColor(FGCOLOR, BGCOLOR);                                                       // DEAUTH
-    }                                                                                            // DEAUTH
-
-    delay(100); //from 200
-
-    if (check_select_press()){                                                                    // DEAUTH
-      target_deauth = !target_deauth;                                                             // DEAUTH
-      DISP.setCursor(1, 115);                                                                     // DEAUTH
-      DISP.println("......................");                                                     // DEAUTH
-      delay(500);                                                                                 // DEAUTH
-    }                                                                                             // DEAUTH
-
-    if (check_next_press()){
-      WiFi.mode(WIFI_MODE_STA);
-      rstOverride = false;
-      isSwitching = true;
-      target_deauth = false;                                                                      // DEAUTH
-      current_proc = 12;
-      delay(500);
-    }
-  }
-  // DEAUTH attack END
-#endif
 void bootScreen(){
   #ifdef SONG
   setupSongs();
@@ -2454,10 +2315,6 @@ void portal_setup(){
   cursor = 0;
   rstOverride = true;
   printHomeToScreen();
-  #if defined(DEAUTHER)                                                                      // DEAUTH
-  memcpy(deauth_frame, deauth_frame_default, sizeof(deauth_frame_default));                  // DEAUTH
-  wsl_bypasser_send_deauth_frame(&ap_record, channel);                                       // DEAUTH  CREATE FRAME
-  #endif                                                                                     // DEAUTH
   delay(500); // Prevent switching after menu loads up
 }
 
@@ -2470,33 +2327,7 @@ void portal_loop(){
     }
   }
   if (clone_flg==true) {
-    #if defined(DEAUTHER)
-      if (target_deauth_flg) {
-        if (target_deauth == true) {                                                                 // DEAUTH
-          if (deauth_tick==35) {                                                                     // 35 is +-100ms   (Add delay to attack, without reflection on portal)
-            wsl_bypasser_send_raw_frame(deauth_frame, sizeof(deauth_frame_default));                 // DEAUTH   SEND FRAME
-            deauth_tick=0;
-          } else { 
-            deauth_tick=deauth_tick+1; 
-          }
-          DISP.setTextSize(SMALL_TEXT);                                                              // DEAUTH
-          DISP.setTextColor(TFT_RED, BGCOLOR);                                                       // DEAUTH
-          DISP.setCursor(1, 115);                                                                    // DEAUTH
-          DISP.println(TXT_DEAUTH_STOP);                                                             // DEAUTH
-          DISP.setTextColor(FGCOLOR, BGCOLOR);                                                       // DEAUTH
-        } else{                                                                                      // DEAUTH
-          DISP.setTextSize(SMALL_TEXT);                                                              // DEAUTH
-          DISP.setTextColor(TFT_RED, BGCOLOR);                                                       // DEAUTH
-          DISP.setCursor(1, 115);                                                                    // DEAUTH
-          DISP.println(TXT_DEAUTH_START);                                                            // DEAUTH
-          DISP.setTextColor(FGCOLOR, BGCOLOR);                                                       // DEAUTH
-        }                                                                                            // DEAUTH
-        if (check_select_press()){                                                                    // DEAUTH
-          target_deauth = !target_deauth;                                                             // DEAUTH
-          delay(500);                                                                                 // DEAUTH
-        }
-      }
-    #endif
+    // Portal is cloning the selected AP
   }
   dnsServer.processNextRequest();
   webServer.handleClient();
@@ -2504,9 +2335,7 @@ void portal_loop(){
   if (check_next_press()){
     shutdownWebServer();
     portal_active = false;
-    target_deauth_flg = false;                                                                     // DEAUTH
-    target_deauth = false;                                                                         // DEAUTH
-    clone_flg = false;                                                                             // DEAUTH
+    clone_flg = false;
     current_proc = 12;
     delay(500);
   }
@@ -2654,10 +2483,6 @@ ProcessHandler processes[] = {
   {17, btmaelstrom_setup, btmaelstrom_loop, "BLE Maelstrom"},
   {18, qrmenu_setup, qrmenu_loop, "QR Menu"},
   {19, portal_setup, portal_loop, "Captive Portal"},
-  {20, wsAmenu_setup, wsAmenu_loop, "WiFi Attack Menu"},
-#if defined(DEAUTHER)
-  {21, deauth_setup, deauth_loop, "Deauth Attack"},
-#endif
   {22, color_setup, color_loop, "Color Settings"},
   {23, theme_setup, theme_loop, "Theme Settings"},
   {24, deauth_hunter_setup, deauth_hunter_loop, "Deauth Hunter"},

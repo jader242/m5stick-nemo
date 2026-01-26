@@ -27,16 +27,6 @@ RUN arduino-cli core install m5stack:esp32 --additional-urls "file:///package_m5
 
 RUN arduino-cli core search m5stack
 RUN arduino-cli board listall
-#
-# Create a directory for the prerequisites script
-RUN mkdir -p /deauth_prerequisites
-COPY ./deauth_prerequisites/install_prerequisites_Linux.sh /deauth_prerequisites/install_prerequisites_linux.sh
-
-# Make the script executable
-RUN chmod +x /deauth_prerequisites/install_prerequisites_linux.sh
-
-# Run the script
-RUN /deauth_prerequisites/install_prerequisites_linux.sh
 
 ARG LIBRARIES 
 
