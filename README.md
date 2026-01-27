@@ -264,8 +264,7 @@ Things I'd like help on:
   * A new "Region" of TV-B-Gone that's full of additional IR codes that can turn RGB LED strips, air conditioners, fans, sound bars and the like on and off
   * A way to convert or use flipper zero IR codes from within NEMO's code-base
 * Figure out a way to read and display battery level on the Cardputer and StickC-Plus2 models that lack an AXP192 PMU. The [battery code in the Cardputer factory demo](https://github.com/m5stack/M5Cardputer-UserDemo/tree/main/main/hal/bat) might be a good place to start.
-* TARGETED Deauthentication against a specific access point only. Deauth spamming PRs will be rejected.
 
 Things I probably won't merge in:
-* Bulk wifi deauthentication spamming
+* WiFi deauthentication
 * Bluetooth spam that potentially disrupts health and fitness trackers, smart watches, etc.

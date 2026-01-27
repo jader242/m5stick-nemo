@@ -4,6 +4,7 @@
 // -=-=-=-=-=-=- Uncomment the platform you're building for -=-=-=-=-=-=-
 // #define STICK_C_PLUS
 // #define STICK_C_PLUS2
+// #define STICKS3
 // #define STICK_C
 // #define CARDPUTER
 // -=-=- Uncommenting more than one at a time will result in errors -=-=-
@@ -22,7 +23,7 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define NEMO_VERSION "dev"
 #endif
 
-#if !defined(CARDPUTER) && !defined(STICK_C_PLUS2) && !defined(STICK_C_PLUS) && !defined(STICK_C)
+#if !defined(CARDPUTER) && !defined(STICK_C_PLUS2) && !defined(STICK_C_PLUS) && !defined(STICK_C) && !defined(STICKS3)
   #define CARDPUTER
 #endif
 
@@ -30,12 +31,10 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define LANGUAGE_EN_US
 #endif
 
-// -=-=- DEAUTHER -=-  @bmorcelli -=-=- | Discord: Pirata#5263 bmorcelli
-#define DEAUTHER  //Need to make some changes in arduino IDE, refer to https://github.com/bmorcelli/m5stickC_Plus2-nemo/tree/main/DEAUTH%20Prerequisites
 
 
 #if defined(STICK_C_PLUS)
-  #include <M5StickCPlus.h>
+  #include <M5Unified.h>
   // -=-=- Display -=-=-
   String platformName="StickC+";
   #define BIG_TEXT 4
@@ -53,11 +52,14 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   //#define SONG
 
   // -=-=- ALIASES -=-=-
-  #define DISP M5.Lcd
+  #define DISP M5.Display
   #define IRLED 9
-  #define SPEAKER M5.Beep
-//  #define BITMAP M5.Lcd.drawBitmap(0, 0, 320, 240, NEMOMatrix) // This doesn't work, generates static.
+  #define SPEAKER M5.Speaker
+  //#define BITMAP M5.Display.drawBitmap(0, 0, 320, 240, NEMOMatrix) // This doesn't work, generates static.
   #define BITMAP Serial.println("unsupported")
+  #define M5_BUTTON_HOME 37
+  #define M5_BUTTON_RST 39
+  #define MINBRIGHT 50
   #define SD_CLK_PIN 0
   #define SD_MISO_PIN 36
   #define SD_MOSI_PIN 26
@@ -67,7 +69,7 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
 #endif
 
 #if defined(STICK_C_PLUS2)
-  #include <M5StickCPlus2.h>
+  #include <M5Unified.h>
   // -=-=- Display -=-=-
   String platformName="StickC+2";
   #define BIG_TEXT 4
@@ -80,14 +82,14 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define ROTATION
   #define USE_EEPROM
   #define RTC      //TODO: plus2 has a BM8563 RTC but the class isn't the same, needs work.
-  #define SDCARD   //Requires a custom-built adapter
+  // #define SDCARD   //Requires a custom-built adapter
   #define PWRMGMT
   #define SPEAKER M5.Speaker
   //#define SONG
   // -=-=- ALIASES -=-=-
-  #define DISP M5.Lcd
+  #define DISP M5.Display
   #define IRLED 19
-  #define BITMAP M5.Lcd.drawBmp(NEMOMatrix, 97338)
+  #define BITMAP M5.Display.drawBmp(NEMOMatrix, 97338)
   #define M5_BUTTON_MENU 35
   #define M5_BUTTON_HOME 37
   #define M5_BUTTON_RST 39
@@ -101,8 +103,43 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define M5LED_OFF LOW
 #endif
 
+#if defined(STICKS3)
+  #include <M5Unified.h>
+  // -=-=- Display -=-=-
+  String platformName="StickS3";
+  #define BIG_TEXT 4
+  #define MEDIUM_TEXT 3
+  #define SMALL_TEXT 2
+  #define TINY_TEXT 1
+  // -=-=- FEATURES -=-=-
+  #define ACTIVE_LOW_IR
+  #define M5LED 46
+  #define ROTATION
+  #define USE_EEPROM
+  #define SDCARD   //Requires a custom-built adapter
+  #define PWRMGMT
+  #define SPEAKER M5.Speaker
+  //#define SONG
+  // -=-=- ALIASES -=-=-
+  #define DISP M5.Display
+  #define IRLED 46
+  #define BITMAP M5.Display.drawBmp(NEMOMatrix, 97338)
+  #define M5_BUTTON_MENU 12  // KEY2 per device diagram
+  #define M5_BUTTON_HOME 11  // KEY1 (main front button)
+  #define M5_BUTTON_RST -1   // GPIO 0 not usable on StickS3 (power/boot pin)
+  #define BACKLIGHT 38
+  #define MINBRIGHT 2
+  #define SD_CLK_PIN 0
+  #define SD_MISO_PIN 1
+  #define SD_MOSI_PIN 8
+  #define SD_CS_PIN 14
+  #define M5LED_ON HIGH
+  #define M5LED_OFF LOW
+  #define HID
+#endif
+
 #if defined(STICK_C)
-  #include <M5StickC.h>
+  #include <M5Unified.h>
   // -=-=- Display -=-=-
   String platformName="StickC";
   #define BIG_TEXT 2
@@ -118,9 +155,12 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define SDCARD   //Requires a custom-built adapter
   //#define SONG
   // -=-=- ALIASES -=-=-
-  #define DISP M5.Lcd
+  #define DISP M5.Display
   #define IRLED 9
   #define BITMAP Serial.println("unsupported")
+  #define M5_BUTTON_HOME 37
+  #define M5_BUTTON_RST 39
+  #define MINBRIGHT 90
   #define SD_CLK_PIN 0
   #define SD_MISO_PIN 36
   #define SD_MOSI_PIN 26
@@ -198,9 +238,7 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
 // 16 - Bluetooth Spam Menu
 // 17 - Bluetooth Maelstrom
 // 18 - QR Codes
-// 19 - NEMO Portal
-// 20 - Attack menu
-// 21 - Deauth Attack
+// 19 - NEMO Portal (with Clone support)
 // 22 - Custom Color Settings
 // 23 - Pre-defined color themes
 // 24 - Deauth Hunter
@@ -255,14 +293,10 @@ bool isSwitching = true;
 #else
   int current_proc = 1; // Start in Main Menu mode if no RTC
 #endif
-// DEAUTH vars
+// Portal clone vars
 uint8_t channel;
 String apMac = String("");
-bool target_deauth_flg = false;
-bool target_deauth = false;
-int deauth_tick = 0;        // used to delay the deauth packets when combined to Nemo Portal
 bool clone_flg = false;
-// DEAUTH end
 float bh_max_rssi = -40;
 int bh_pkts = 0;
 float dh_max_rssi = -20;
@@ -286,16 +320,13 @@ int dh_pkts = 0;
 #include "localization.h"
 #include <BLEUtils.h>
 #include <BLEServer.h>
-#if defined(DEAUTHER)
-  #include "deauth.h"                                                               //DEAUTH
-  #include "esp_wifi.h"                                                             //DEAUTH
-  wifi_ap_record_t ap_record;                                                       //DEAUTH
-#endif
 
 #include "deauth_hunter.h"                                                          //DEAUTH HUNTER
 #include "ble_hunter.h"                                                             //BLE HUNTER
 #include "pineap_hunter.h"                                                          //PINEAP HUNTER
+#if defined(CARDPUTER)
 #include "badusb_hunter.h"                                                          //BADUSB HUNTER
+#endif
 struct MENU {
   char name[19];
   int command;
@@ -380,14 +411,16 @@ void switcher_button_proc() {
 // Tap the power button from pretty much anywhere to get to the main menu
 void check_menu_press() {
 #if defined(AXP)
-  if (M5.Axp.GetBtnPress()) {
+  M5.update();
+  if (M5.Power.getKeyState()) {
 #endif
 #if defined(KB)
   if (M5Cardputer.Keyboard.isKeyPressed(',') || M5Cardputer.Keyboard.isKeyPressed('`')){
 #endif
-#if defined(M5_BUTTON_MENU)
+#if defined(M5_BUTTON_MENU) && !defined(STICKS3)
   if (digitalRead(M5_BUTTON_MENU) == LOW){
 #endif
+#if defined(AXP) || defined(KB) || (defined(M5_BUTTON_MENU) && !defined(STICKS3))
     dimtimer();
     if(portal_active){
       // just in case we escape the portal with the main menu button
@@ -399,6 +432,7 @@ void check_menu_press() {
     current_proc = 1;
     delay(100);
   }
+#endif
 }
 
 bool check_next_press(){
@@ -412,6 +446,12 @@ bool check_next_press(){
   }
   //M5Cardputer.update();
   if (M5Cardputer.Keyboard.isKeyPressed(KEY_TAB) || M5Cardputer.Keyboard.isKeyPressed('.')){
+    dimtimer();
+    return true;
+  }
+#elif defined(STICKS3)
+  // StickS3: Use GPIO 12 (KEY2) for Next
+  if (digitalRead(12) == LOW){
     dimtimer();
     return true;
   }
@@ -541,7 +581,7 @@ int screen_dim_current = 0;
 void screenBrightness(int bright){
   Serial.printf("Brightness: %d\n", bright);
   #if defined(AXP)
-    M5.Axp.ScreenBreath(10 + round(((100 - 10) * bright / 100)));
+    M5.Display.setBrightness(MINBRIGHT + round(((255 - MINBRIGHT) * bright / 100)));
   #endif
   #if defined(BACKLIGHT)
     int bl = MINBRIGHT + round(((255 - MINBRIGHT) * bright / 100)); 
@@ -1094,18 +1134,18 @@ void battery_drawmenu(int battery, float voltage_b = 0, float voltage_c = 0) {
 
   void battery_setup() {
     rstOverride = false;
-    float c = M5.Axp.GetVapsData() * 1.4 / 1000;
-    float b = M5.Axp.GetVbatData() * 1.1 / 1000;
-    int battery = ((b - 3.0) / 1.2) * 100;
+    float c = M5.Power.Axp192.getBatteryChargeCurrent() / 1000.0;
+    float b = M5.Power.getBatteryVoltage() / 1000.0;
+    int battery = M5.Power.getBatteryLevel();
     battery_drawmenu(battery, b, c);
     delay(500); // Prevent switching after menu loads up
   }
 
   void battery_loop() {
     delay(300);
-    float c = M5.Axp.GetVapsData() * 1.4 / 1000;
-    float b = M5.Axp.GetVbatData() * 1.1 / 1000;
-    int battery = ((b - 3.0) / 1.2) * 100;
+    float c = M5.Power.Axp192.getBatteryChargeCurrent() / 1000.0;
+    float b = M5.Power.getBatteryVoltage() / 1000.0;
+    int battery = M5.Power.getBatteryLevel();
     if (battery != old_battery || b != old_b || c != old_c){
       battery_drawmenu(battery, b, c);
       old_b = b;
@@ -1169,6 +1209,13 @@ void tvbgone_setup() {
   DISP.setCursor(0, 0);
   DISP.println("TV-B-Gone");
   DISP.setTextSize(SMALL_TEXT);
+
+  // StickS3: Enable 5V output to power IR LED (required per schematic)
+  #if defined(STICKS3)
+  M5.Power.setExtOutput(true);
+  delay(50);  // Allow power to stabilize
+  #endif
+
   IrSender.begin(IRLED); // Initialize IR sender
   // Hack: Set IRLED high to turn it off after setup. Otherwise it stays on (active low)
   digitalWrite(IRLED, M5LED_OFF);
@@ -1285,12 +1332,23 @@ void sendAllCodes() {
     bitsleft_r = 0;
     delay_ten_us(20500);
     #if defined(AXP)
-    if (M5.Axp.GetBtnPress()) {
+    M5.update();
+    if (M5.Power.getKeyState()) {
       endingEarly = true;
       current_proc = 1;
       isSwitching = true;
-      rstOverride = false; 
-      break;     
+      rstOverride = false;
+      break;
+    }
+    #endif
+    #if defined(STICKS3)
+    M5.update();  // Refresh button states
+    if (M5.Power.getKeyState()) {
+      endingEarly = true;
+      current_proc = 1;
+      isSwitching = true;
+      rstOverride = false;
+      break;
     }
     #endif
 #if defined(KB)
@@ -1328,8 +1386,8 @@ void sendAllCodes() {
 
   void clock_loop() {
     DISP.setCursor(10, 40, 7);
-    #if defined(STICK_C_PLUS2)
-      auto dt = StickCP2.Rtc.getDateTime();
+    #if defined(STICK_C_PLUS2) || defined(STICK_C) || defined(STICK_C_PLUS)
+      auto dt = M5.Rtc.getDateTime();
       DISP.printf("%02d:%02d:%02d\n", dt.time.hours, dt.time.minutes, dt.time.seconds);
     #else
       M5.Rtc.GetBm8563Time();
@@ -1348,8 +1406,8 @@ void sendAllCodes() {
   }
 
   void timeset_loop() {
-  #if defined(STICK_C_PLUS2)
-    auto dt = StickCP2.Rtc.getDateTime();
+  #if defined(STICK_C_PLUS2) || defined(STICK_C) || defined(STICK_C_PLUS)
+    auto dt = M5.Rtc.getDateTime();
     cursor = dt.time.hours;
   #else
     M5.Rtc.GetBm8563Time();
@@ -1369,7 +1427,7 @@ void sendAllCodes() {
     DISP.setCursor(0, 0);
     DISP.println(TXT_SET_MIN);
     delay(2000);
-    #if defined(STICK_C_PLUS2)
+    #if defined(STICK_C_PLUS2) || defined(STICK_C) || defined(STICK_C_PLUS)
       cursor = dt.time.minutes;
     #else
       cursor = M5.Rtc.Minute;
@@ -1386,8 +1444,8 @@ void sendAllCodes() {
     int minute = cursor;
     DISP.fillScreen(BGCOLOR);
     DISP.setCursor(0, 0);
-    #if defined(STICK_C_PLUS2)
-       StickCP2.Rtc.setDateTime( { { dt.date.year, dt.date.month, dt.date.date }, { hour, minute, 0 } } );
+    #if defined(STICK_C_PLUS2) || defined(STICK_C) || defined(STICK_C_PLUS)
+       M5.Rtc.setDateTime( { { dt.date.year, dt.date.month, dt.date.date }, { hour, minute, 0 } } );
     #else
       RTC_TimeTypeDef TimeStruct;
       TimeStruct.Hours   = hour;
@@ -2126,16 +2184,15 @@ void wscan_result_loop(){
     DISP.print("BSSID:\n" + WiFi.BSSIDstr(i));
     DISP.printf(TXT_SEL_BACK);
     DISP.setTextColor(BGCOLOR, FGCOLOR);
-    DISP.printf(" %-19s\n", TXT_HOLD_ATTACK);
+    DISP.printf(" %-19s\n", TXT_HOLD_CLONE);
     DISP.setTextColor(FGCOLOR, BGCOLOR);
    if(check_select_press()){
       apMac=WiFi.BSSIDstr(cursor);
       apSsidName=WiFi.SSID(cursor);
-      channel = static_cast<uint8_t>(WiFi.channel(cursor));                            // DEAUTH - save channel
-      uint8_t* bssid = WiFi.BSSID(cursor);                                             // DEAUTH - save BSSID (AP MAC)
-      memcpy(ap_record.bssid, bssid, 6);                                               // DEAUTH - cpy bssid to memory
+      channel = static_cast<uint8_t>(WiFi.channel(cursor));
+      clone_flg = true;
       rstOverride = false;
-      current_proc = 20;
+      current_proc = 19;  // Go directly to Portal
       isSwitching = true;
       delay(100);
     }
@@ -2166,138 +2223,12 @@ void wscan_loop(){
     current_proc=15;
   }
 }
-/// WIFI-Attack MENU and functions START///
-MENU wsAmenu[] = {
-  { TXT_BACK, 5},
-  { TXT_WFA_PORTAL, 0},
-  #if defined(DEAUTHER)
-    { TXT_WFA_DEAUTH, 1},
-    { TXT_WFA_COMBINED, 2},
-  #endif
-};
-int wsAmenu_size = sizeof(wsAmenu) / sizeof (MENU);
 
-void wsAmenu_setup() {
-  rstOverride = true;
-  drawmenu(wsAmenu, wsAmenu_size);
-  delay(500); // Prevent switching after menu loads up
-}
-
-void wsAmenu_loop() {
-  if (check_next_press()) {
-    cursor++;
-    cursor = cursor % wsAmenu_size;
-    drawmenu(wsAmenu, wsAmenu_size);
-    delay(250);
-  }
-  if (check_select_press()) {
-    int option = wsAmenu[cursor].command;
-    rstOverride = false;
-    current_proc = 20;
-    isSwitching = true;
-    switch(option) {
-      case 0:                     //Go to Clone Nemo Portal
-        rstOverride = false;
-        isSwitching = true;
-        clone_flg=true;
-        target_deauth_flg=false;
-        current_proc = 19;
-        break;
-      #if defined (DEAUTHER)
-        case 1:                     //Go to Deauth
-          rstOverride = false;
-          isSwitching = true;
-          target_deauth_flg=false;
-          target_deauth=true;
-          current_proc = 21;                                                                 // iserir codigo do deauth aqui
-          break;
-        case 2:                     //Go to Nemo with Deauth
-          rstOverride = false;
-          isSwitching = true;
-          clone_flg=true;
-          target_deauth_flg=true;
-          target_deauth=true;
-          current_proc = 19;
-          break;
-      #endif
-      case 5:                     //Exit
-        current_proc = 14;
-        break;
-    }
-  }
-}
-
-// WIFI-Attack MENU and functions END
-// DEAUTH ATTACK START
-#if defined(DEAUTHER)
-  void deauth_setup(){
-    // Start the Access point service as Hidden
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(apSsidName, emptyString, channel, 1, 4, false);
-    IPAddress apIP = WiFi.softAPIP();
-
-
-    DISP.fillScreen(BGCOLOR);
-    DISP.setCursor(0, 0);
-    DISP.setTextSize(BIG_TEXT);
-    DISP.setTextColor(TFT_RED, BGCOLOR);
-    DISP.println("Deauth Atk");
-    DISP.setTextSize(SMALL_TEXT);
-    DISP.setTextColor(FGCOLOR, BGCOLOR);
-    DISP.print("\nSSID: " + apSsidName);
-    DISP.print("\n");
-    DISP.printf(TXT_WF_CHANN, channel);
-    DISP.print("> " + apMac);
-    memcpy(deauth_frame, deauth_frame_default, sizeof(deauth_frame_default));
-    wsl_bypasser_send_deauth_frame(&ap_record, channel);                                        // DEAUTH CREATE FRAME
-
-    cursor = 0;
-    rstOverride = false;
-    delay(500); // Prevent switching after menu loads up
-  }
-  void deauth_loop(){
-
-    if (target_deauth == true) {                                                                 // DEAUTH
-      wsl_bypasser_send_raw_frame(deauth_frame, sizeof(deauth_frame_default));                   // DEAUTH SEND FRAME
-      DISP.setTextSize(SMALL_TEXT);                                                              // DEAUTH
-      DISP.setTextColor(TFT_RED, BGCOLOR);                                                       // DEAUTH
-      DISP.setCursor(1, 115);                                                                    // DEAUTH
-      DISP.println(TXT_DEAUTH_STOP);                                                             // DEAUTH
-      DISP.setTextColor(FGCOLOR, BGCOLOR);                                                       // DEAUTH
-    } else{                                                                                      // DEAUTH
-      DISP.setTextSize(SMALL_TEXT);                                                              // DEAUTH
-      DISP.setTextColor(TFT_RED, BGCOLOR);                                                       // DEAUTH
-      DISP.setCursor(1, 115);                                                                    // DEAUTH
-      DISP.println(TXT_DEAUTH_START);                                                            // DEAUTH
-      DISP.setTextColor(FGCOLOR, BGCOLOR);                                                       // DEAUTH
-    }                                                                                            // DEAUTH
-
-    delay(100); //from 200
-
-    if (check_select_press()){                                                                    // DEAUTH
-      target_deauth = !target_deauth;                                                             // DEAUTH
-      DISP.setCursor(1, 115);                                                                     // DEAUTH
-      DISP.println("......................");                                                     // DEAUTH
-      delay(500);                                                                                 // DEAUTH
-    }                                                                                             // DEAUTH
-
-    if (check_next_press()){
-      WiFi.mode(WIFI_MODE_STA);
-      rstOverride = false;
-      isSwitching = true;
-      target_deauth = false;                                                                      // DEAUTH
-      current_proc = 12;
-      delay(500);
-    }
-  }
-  // DEAUTH attack END
-#endif
 void bootScreen(){
-  // Boot Screen
   #ifdef SONG
   setupSongs();
   #endif
-  #ifndef STICK_C
+  #if !defined(STICK_C)
   BITMAP;
   delay(3000);
   #endif
@@ -2326,7 +2257,9 @@ void bootScreen(){
 #else
   DISP.println(TXT_STK_NXT);
   DISP.println(TXT_STK_SEL);
+#if !defined(STICKS3)
   DISP.println(TXT_STK_HOME);
+#endif
   delay(3000);
 #endif
 }
@@ -2382,10 +2315,6 @@ void portal_setup(){
   cursor = 0;
   rstOverride = true;
   printHomeToScreen();
-  #if defined(DEAUTHER)                                                                      // DEAUTH
-  memcpy(deauth_frame, deauth_frame_default, sizeof(deauth_frame_default));                  // DEAUTH
-  wsl_bypasser_send_deauth_frame(&ap_record, channel);                                       // DEAUTH  CREATE FRAME
-  #endif                                                                                     // DEAUTH
   delay(500); // Prevent switching after menu loads up
 }
 
@@ -2398,33 +2327,7 @@ void portal_loop(){
     }
   }
   if (clone_flg==true) {
-    #if defined(DEAUTHER)
-      if (target_deauth_flg) {
-        if (target_deauth == true) {                                                                 // DEAUTH
-          if (deauth_tick==35) {                                                                     // 35 is +-100ms   (Add delay to attack, without reflection on portal)
-            wsl_bypasser_send_raw_frame(deauth_frame, sizeof(deauth_frame_default));                 // DEAUTH   SEND FRAME
-            deauth_tick=0;
-          } else { 
-            deauth_tick=deauth_tick+1; 
-          }
-          DISP.setTextSize(SMALL_TEXT);                                                              // DEAUTH
-          DISP.setTextColor(TFT_RED, BGCOLOR);                                                       // DEAUTH
-          DISP.setCursor(1, 115);                                                                    // DEAUTH
-          DISP.println(TXT_DEAUTH_STOP);                                                             // DEAUTH
-          DISP.setTextColor(FGCOLOR, BGCOLOR);                                                       // DEAUTH
-        } else{                                                                                      // DEAUTH
-          DISP.setTextSize(SMALL_TEXT);                                                              // DEAUTH
-          DISP.setTextColor(TFT_RED, BGCOLOR);                                                       // DEAUTH
-          DISP.setCursor(1, 115);                                                                    // DEAUTH
-          DISP.println(TXT_DEAUTH_START);                                                            // DEAUTH
-          DISP.setTextColor(FGCOLOR, BGCOLOR);                                                       // DEAUTH
-        }                                                                                            // DEAUTH
-        if (check_select_press()){                                                                    // DEAUTH
-          target_deauth = !target_deauth;                                                             // DEAUTH
-          delay(500);                                                                                 // DEAUTH
-        }
-      }
-    #endif
+    // Portal is cloning the selected AP
   }
   dnsServer.processNextRequest();
   webServer.handleClient();
@@ -2432,9 +2335,7 @@ void portal_loop(){
   if (check_next_press()){
     shutdownWebServer();
     portal_active = false;
-    target_deauth_flg = false;                                                                     // DEAUTH
-    target_deauth = false;                                                                         // DEAUTH
-    clone_flg = false;                                                                             // DEAUTH
+    clone_flg = false;
     current_proc = 12;
     delay(500);
   }
@@ -2582,10 +2483,6 @@ ProcessHandler processes[] = {
   {17, btmaelstrom_setup, btmaelstrom_loop, "BLE Maelstrom"},
   {18, qrmenu_setup, qrmenu_loop, "QR Menu"},
   {19, portal_setup, portal_loop, "Captive Portal"},
-  {20, wsAmenu_setup, wsAmenu_loop, "WiFi Attack Menu"},
-#if defined(DEAUTHER)
-  {21, deauth_setup, deauth_loop, "Deauth Attack"},
-#endif
   {22, color_setup, color_loop, "Color Settings"},
   {23, theme_setup, theme_loop, "Theme Settings"},
   {24, deauth_hunter_setup, deauth_hunter_loop, "Deauth Hunter"},
@@ -3523,9 +3420,7 @@ void string_to_bssid(const String& bssid_str, uint8_t* bssid) {
 }
 
 void play_alert_beep() {
-    #if defined(CARDPUTER)
-      SPEAKER.tone(4000, 50);
-    #elif defined(STICK_C_PLUS2)
+    #if defined(CARDPUTER) || defined(STICK_C_PLUS2) || defined(STICKS3)
       SPEAKER.tone(4000, 50);
     #endif
 }

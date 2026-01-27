@@ -4,8 +4,9 @@ bool sdcardMounted = false;
   #include <FS.h>
   #include <SD.h>
   #include <SPI.h>
-  
-  #if defined(CARDPUTER)
+
+  #if defined(CARDPUTER) || defined(STICKS3)
+    // Use FSPI (SPI2_HOST) to avoid conflict with display on SPI3_HOST
     SPIClass* sdcardSPI = NULL;
   #else
     SPIClass sdcardSPI;
@@ -35,7 +36,8 @@ bool sdcardMounted = false;
 bool setupSdCard() {
 #if defined(SDCARD)
   sdcardSemaphore = xSemaphoreCreateMutex();
-  #if defined (CARDPUTER)
+  #if defined(CARDPUTER) || defined(STICKS3)
+    // Use FSPI (SPI2_HOST) to avoid conflict with display on SPI3_HOST
     sdcardSPI = new SPIClass(FSPI);
     sdcardSPI->begin(SD_CLK_PIN, SD_MISO_PIN, SD_MOSI_PIN, SD_CS_PIN);
   #else
@@ -43,8 +45,8 @@ bool setupSdCard() {
   #endif
 
   delay(10);
-  
-  #if defined (CARDPUTER)
+
+  #if defined(CARDPUTER) || defined(STICKS3)
     if (!SD.begin(SD_CS_PIN, *sdcardSPI)) {
       sdcardSPI->end();
   #else
@@ -65,7 +67,57 @@ bool setupSdCard() {
 }
 
 #if defined(SDCARD)
-  #ifndef CARDPUTER
+  #if defined(STICKS3)
+    // StickS3 version using pointer-style SPI (FSPI)
+    void ToggleSDCard()
+    {
+      rstOverride = true;
+      isSwitching = true;
+      current_proc=1;
+      DISP.fillScreen(BGCOLOR);
+      DISP.setCursor(5, 1);
+      if (sdcardMounted == true) {
+        sdcardMounted = false;
+        SD.end();
+        if (sdcardSPI) sdcardSPI->end();
+        DISP.println("SD Card Unmounted..");
+        DISP.println("pin header released.");
+        Serial.println("SD Card Unmounted...");
+      } else {
+        if (!sdcardSPI) sdcardSPI = new SPIClass(FSPI);
+        sdcardSPI->begin(SD_CLK_PIN, SD_MISO_PIN, SD_MOSI_PIN, SD_CS_PIN);
+        delay(10);
+
+        if (!SD.begin(SD_CS_PIN, *sdcardSPI)) {
+          Serial.println("Card Mount Failed");
+          DISP.println("Card Mount Failed");
+          sdcardSPI->end();
+        } else {
+          sdcardMounted = true;
+          uint8_t cardType = SD.cardType();
+          if (cardType == CARD_NONE) {
+            DISP.println("None SD Card");
+            Serial.println("None SD Card");
+          }
+          DISP.print("SD Card Type: ");
+          if (cardType == CARD_MMC) {
+            DISP.println("MMC");
+          } else if (cardType == CARD_SD) {
+            DISP.println("SDSC");
+          } else if (cardType == CARD_SDHC) {
+            DISP.println("SDHC");
+          } else {
+            DISP.println("UNKNOWN");
+          }
+          uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+          DISP.printf("SD Card Size: %lluMB\n", cardSize);
+          Serial.printf("SD Card Size: %lluMB\n", cardSize);
+        }
+      }
+      delay(1500);
+    }
+  #elif !defined(CARDPUTER)
+    // Original version for other boards using object-style SPI
     void ToggleSDCard()
     {
       rstOverride = true;
@@ -81,7 +133,7 @@ bool setupSdCard() {
         uint64_t cardSize = 0;
         SD.end();
         sdcardSPI.end(); // Closes SPI connections and release pins.
-        DISP.println("SD Card Unmouted..");
+        DISP.println("SD Card Unmounted..");
         DISP.println("pin header released.");
         Serial.println("SD Card Unmounted...");
       } else {
@@ -94,7 +146,7 @@ bool setupSdCard() {
           sdcardSPI.end();
 
         } else {
-          // 
+          //
           sdcardMounted = true;
           uint8_t cardType = SD.cardType();
           if (cardType == CARD_NONE) {
